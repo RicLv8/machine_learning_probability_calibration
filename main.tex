@@ -1,0 +1,152 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage[margin=2.4cm]{geometry}
+\usepackage[utf8]{inputenc}
+\usepackage{amsmath,amssymb}
+\usepackage{graphicx,float,booktabs}
+\usepackage[hidelinks]{hyperref}
+\usepackage{caption}
+\captionsetup{font=small,labelfont=bf}
+\graphicspath{{../results/figures/}}
+\setlength{\parskip}{3pt}\emergencystretch=3em
+\newcommand{\Prob}{\mathbb{P}}
+
+\title{\textbf{Calibration of Probabilities:\\ Platt Scaling and Isotonic Regression for Logistic Regression and Random Forests}\\[2pt]
+\large Assignment 2 --- based on \emph{Predicting Good Probabilities with Supervised Learning} (Niculescu-Mizil \& Caruana, ICML 2005)}
+\author{Riccardo Gaglio \quad 84235A \\ Code: \url{https://github.com/RicLv8/machine_learning_probability_calibration.git}}
+\date{}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+\noindent Even when classifiers output probabilities, standard accuracy and log-loss do not guarantee that a predicted ``0.8'' means ``80\% of such cases are positive''. Following the work of Niculescu-Mizil and Caruana (2005), this project investigates the calibration of Logistic Regression and Random Forest across two real UCI datasets, testing two post-processing methods built entirely from scratch: Platt Scaling and Isotonic Regression. To ensure methodological rigor, a leakage-free train/calibration/test protocol is repeated across 30 random splits, in order to assess accuracy, log-loss, Brier score and expected calibration error alongside reliability diagrams plotted before and after correction. The findings indicate Random Forests are notably miscalibrated, displaying an under-confident, S-shaped reliability curve; however, Platt scaling halves their Brier score on the larger dataset. On the other hand, Logistic Regression is already well calibrated, meaning that post-processing does not yield substantial improvement and isotonic regression suffers from overfitting on small calibration sets. Finally, a controlled experiment analysing the effect of calibration set size successfully reproduces the primary practical takeaways of the reference study.
+\end{abstract}
+
+\section*{Declaration}
+\noindent\textit{I declare that this material, which I now submit for assessment, is entirely my own work and has not been taken from the work of others, save and to the extent that such work has been cited and acknowledged within the text of my work. I understand that plagiarism, collusion, and copying are grave and serious offences in the university and accept the penalties that would be imposed should I engage in plagiarism, collusion or copying. This assignment, or any part of it, has not been previously submitted by me or any other person for assessment on this or any other course of study.}
+\section{Introduction and motivation}
+During training, classifiers typically minimise a surrogate loss function (such as logistic loss or hinge loss), producing outputs that are commonly interpreted as scores or probabilities. However, in critical domains - including medical triage, risk assessment, cost-sensitive decision-making and model ensembling - it is essential that these predicted probabilities be truly reliable. Specifically, for a binary classifier that assigns a predicted probability $\hat{p}(x)$ of belonging to the positive class, perfect calibration implies that, among all cases assigned a specific probability $p$, the actual proportion of positive outcomes is exactly equal to $p$:
+\begin{equation}
+\Prob\big(Y=1 \mid \hat p(X)=p\big) = p \qquad \forall p\in[0,1],
+\end{equation}
+For example, among all cases receiving $\hat p = 0.8$, about 80\% are positive. Calibration is a property distinct from discrimination: a model can rank cases perfectly (AUC $=1$) and still be poorly calibrated, and minimising a surrogate loss does not imply calibration when the model class is misspecified or the algorithm has an inductive bias that distorts the scores (e.g.\ margin maximisation, averaging of high-variance trees, naive independence assumptions).
+
+\textbf{Objective.} Evaluate the calibration of two probabilistic classifiers --- Logistic Regression (LR) and Random Forest (RF) --- on two real datasets, improve it with Platt scaling and isotonic regression, and quantify the effect with accuracy, log-loss and Brier score, supported by reliability diagrams.
+
+\section{The reference paper in brief}
+\textbf{Question.} \emph{Which learning algorithms predict good probabilities, and how can predictions that are not good be corrected?} Niculescu-Mizil and Caruana~\cite{nmc05} study ten supervised learners (SVM, neural nets, decision trees, k-NN, bagged trees, random forests, boosted trees, boosted stumps, naive Bayes, logistic regression) on eight binary problems (ADULT, COV\_TYPE, two LETTER variants, MEDIS, MG, SLAC, HS). Models are trained on 4000 points, calibrated on an \emph{independent} set of 1000 points and tested on large held-out sets.
+
+\textbf{Calibration methods.}
+(i) \emph{Platt scaling}~\cite{platt99}: fit a sigmoid $\Prob(y{=}1\mid f)=1/(1+\exp(Af+B))$ to the raw model output $f$ by maximum likelihood, with smoothed targets $y_+=\frac{N_++1}{N_++2}$, $y_-=\frac{1}{N_-+2}$ to avoid overfitting. It has 2 parameters.
+(ii) \emph{Isotonic regression}~\cite{ze02}: fit the best \emph{non-decreasing} step function $m$ minimising $\sum_i (y_i-m(f_i))^2$ with the Pair-Adjacent-Violators (PAV) algorithm \cite{ayer55}. It is more general (corrects any monotone distortion) but has many more degrees of freedom.
+
+\textbf{Main findings.}
+\begin{itemize}\setlength\itemsep{0pt}
+\item \emph{Max-margin methods} (SVM, boosted trees/stumps) push predictions \emph{away from 0 and 1}, giving a characteristic \textbf{sigmoid-shaped} reliability diagram (under-confidence at the extremes). On the other hand, \emph{Naive Bayes} does the opposite (inverted sigmoid, over-confidence). \emph{Neural nets, logistic regression and bagged trees} are well calibrated out of the box. \emph{Random forests} show a milder version of the max-margin distortion, because averaging high-variance trees makes outputs near 0 or 1 hard to reach.
+\item In case the distortion is sigmoid-shaped and data are scarce, Platt scaling is best; isotonic regression is more powerful but \textbf{overfits when the calibration set has fewer than $\approx$200--1000 points}, and is as good or better beyond 1000.
+\item Calibration helps boosted trees, SVMs, boosted stumps and naive Bayes a lot, but it does nothing for bagged trees and slightly \emph{hurts} already-calibrated models such as neural nets. After calibration, boosted trees, random forests and SVMs give the best probabilities.
+\end{itemize}
+\textbf{Link with this assignment.} The experimental protocol of the reference paper is replicated on a smaller scale. This implementation examines two of its ten original learning algorithms - Logistic Regression as a \textit{well-calibrated model}, and Random Forest as a \textit{model distorted by variance} - along both calibration methods, two datasets, and the calibration-set-size analysis (Section~\ref{sec:lc}). Finally, Section~\ref{sec:discussion} evaluates the paper's original claims against the empirical observations of this work.
+
+\section{Methodology}
+\subsection{Datasets and their selection}
+The two empirical datasets are sourced directly from the UCI repository \cite{uci} via \texttt{scikit-learn} \cite{sklearn} (ensuring full reproducibility without downloads). Moreover, both datasets are formulated for binary classification, and are compact enough to run many repetitions.
+\begin{itemize}\setlength\itemsep{0pt}
+\item \textbf{Breast Cancer Wisconsin (Diagnostic)}: Comprising 569 cases and 30 numeric features, with malignant $=1$ (37.3\% positives). Because it is small and nearly linearly separable, it represents a \emph{data-scarce} regime (yielding a calibration split of only 142 points) and an ``easy'' scenario where models exhibit high confidence.
+\item \textbf{Optical Recognition of Handwritten Digits}: It consists of 1797 instances and 64 pixel features, binarised into digits $\ge 5$ vs.\ $<5$ (yielding a balanced 49.9\% positives). This introduces a more challenging problem, on which a linear model performs clearly worse than a \emph{non-linear} one ($88.6\%$ vs. $97.1\%$ test accuracy for LR vs. RF, Table~\ref{tab:digits}), and it provides a larger calibration set of 449 points and a wide range of predicted probabilities that makes the reliability diagram particularly informative. The binarisation rule is arbitrary but fixed a priori without hyperparameter tuning.
+\item A \textbf{synthetic} dataset (\texttt{make\_classification}, 30\,000 points, 20 features, 3 clusters per class, 5\% label noise) is used \emph{only} for the controlled calibration-set-size study of Section~\ref{sec:lc}, where thousands of calibration points are needed. All the primary empirical results rely on the two real datasets described above.
+\end{itemize}
+
+\subsection{Protocol and prevention of data leakage}
+For each repetition $r=0,\dots,29$ the data are partitioned via stratified sampling (using seed $r$) into a \textbf{50\% train set/ 25\% calibration set/  25\% test set}.
+\begin{enumerate}\setlength\itemsep{0pt}
+\item \textit{Model Training}: The classifier (including preprocessing components such as the \texttt{StandardScaler} inside the LR pipeline) is fitted exclusively on the \textbf{train} set.
+\item \textit{Calibration}: Platt scaling and isotonic regression are fitted on the classifier's scores derived from the \textbf{calibration} set. Training on the same data used to build the model would introduce severe bias: a model that fits its training set perfectly would yield a degenerate $0/1$ mapping (paper, Sec.~2.1).
+\item \textit{Independent Evaluation}: Every evaluation metric and reliability diagram is computed on the \textbf{test} set, which remains entirely isolated from any fitting or selection process. Hyper-parameters are fixed a priori (Logistic Regression: $C{=}1$, standardised inputs; Random Forests: 200 trees, default depth) and \emph{not} tuned, in order to prevent data leakage during model selection.
+\end{enumerate}
+Repeating this procedure across 30 random splits gives mean $\pm$ std and, for each calibrator, the number of splits in which it improved a metric over the uncalibrated model (a paired comparison). The input scores given to the calibrators are the logit (decision function) for Logistic Regression and the predicted probability for Random Forests, while the ``uncalibrated'' Logistic Regression probability is the sigmoid of its decision function. The 50/25/25 split ratio is a trade-off: ensuring the calibrator receives enough data (Sec.~\ref{sec:lc}) without depriving the main classifier of necessary training instances.
+
+\subsection{Calibration methods (implemented from scratch)}
+\textbf{Platt scaling.} With $z_i=Af_i+B$, $p_i=\sigma(-z_i)$ and smoothed targets $t_i$, the negative log-likelihood is minimised as:
+$\mathcal L(A,B)=-\sum_i \big[t_i\log p_i+(1-t_i)\log(1-p_i)\big]$.
+Given $\partial\mathcal L/\partial z_i = t_i-p_i$ and $\partial^2\mathcal L/\partial z_i^2=p_i(1-p_i)$, the gradient is $\big(\sum_i (t_i-p_i)f_i,\ \sum_i (t_i-p_i)\big)$ and the $2\times2$ Hessian is $\sum_i p_i(1-p_i)\,[f_i^2,\ f_i;\ f_i,\ 1]$. Because the optimisation problem is convex, Newton's method with Armijo backtracking converges within a few iterations (whereas the paper uses gradient descent, obtaining an identical optimum). The initialisation follows Platt's standard approach \cite{platt99}: $A=0$, $B=\log\frac{N_-+1}{N_++1}$.
+
+\textbf{Isotonic regression (PAV):} Scores are sorted, and tied values are merged to ensure the monotonicity constraint maps them to identical output. Blocks of data are pushed on a stack structure; whenever a block's mean exceeds or equals the next block's mean, the two blocks are recursively \emph{pooled} into their weighted average until the sequence is strictly increasing. The resulting output is a non-decreasing step function. During prediction, any given score adopts the value of the first block whose upper boundary is greater than or equal to the score, with out-of-range scores mapped to the boundary values.
+
+\textbf{Verification:} Unit tests (\texttt{tests/}) confirm that: all the metrics align identically with \texttt{sklearn.metrics}; the custom Platt optimiser yields a zero gradient and matches a nearly unregularised 1-D logistic regression within $10^{-2}$ tolerance (with minor discrepancies attributable to target smoothing); and the custom Pair-Adjacent Violators output matches \texttt{scikit-learn's IsotonicRegression} on the training points - both with and without ties - while remaining non-decreasing (monotone) on unseen data.
+
+\subsection{Evaluation metrics and reliability diagrams}
+With test labels $y_i\in\{0,1\}$, probabilities $p_i$ and $n$ test points (all implemented in NumPy):
+\begin{align*}
+\text{Accuracy}&=\tfrac1n\sum_i \mathbf 1\big[\mathbf 1(p_i\ge0.5)=y_i\big], &
+\text{Brier}&=\tfrac1n\sum_i (p_i-y_i)^2,\\
+\text{Log-loss}&=-\tfrac1n\sum_i\big[y_i\log p_i+(1-y_i)\log(1-p_i)\big],&
+\text{ECE}&=\sum_{b=1}^{10}\tfrac{n_b}{n}\,\big|\mathrm{frac\_pos}_b-\mathrm{mean\_pred}_b\big|.
+\end{align*}
+While accuracy measures thresholded decisions and remains largely insensitive to calibration, log-loss and the Brier score~\cite{brier50} are \emph{proper scoring rules} that reward both calibration and sharpness (the Brier score decomposes into reliability minus resolution plus uncertainty, as formulated by Murphy~\cite{murphy73}). To prevent numerical instability, log-loss clips probabilities to $[10^{-15},1-10^{-15}]$; consequently, an erroneous prediction of exactly $0$ or $1$ incurs a penalty of $\approx34.5$ nats, which significantly impacts isotonic regression (Sec.~\ref{sec:discussion}). The Expected Calibration Error (ECE) provides an additional summary metric for the reliability diagram, though its value depends on the chosen binning strategy.
+\textbf{Reliability diagram} (DeGroot and Fienberg~\cite{dgf82}): Predictions are partitioned into 10 equal-width bins. For each non-empty bin, the mean predicted value is plotted against the observed fraction of positive cases; a perfectly calibrated model aligns with the diagonal line. Below each diagram, a log-scale histogram shows how many predictions fall in each region, because bins with few points are noisy.
+
+\section{Results}\label{sec:results}
+\subsection{Quantitative comparison}
+Tables~\ref{tab:breast_cancer} and~\ref{tab:digits} report the test metrics. Arrows give the direction of improvement.
+\input{../results/tables/main_tables.tex}
+
+\subsection{Reliability diagrams before and after correction}
+Figures~\ref{fig:digits} and~\ref{fig:bc} show reliability diagrams (top) and histograms of the predicted probabilities (bottom) for the three variants. To obtain smooth curves despite the small test sets, the test predictions of the 30 splits are pooled (every prediction is still out-of-sample); single-split versions are in \texttt{results/figures/}.
+\begin{figure}[H]\centering
+\includegraphics[width=.93\textwidth]{reliability_digits.pdf}
+\caption{Digits: reliability diagrams and prediction histograms before/after calibration. ECE in the legend is computed on the pooled predictions, so it differs from the per-split means in Tables 1--2.}\label{fig:digits}
+\end{figure}
+\begin{figure}[H]\centering
+\includegraphics[width=.93\textwidth]{reliability_breast_cancer.pdf}
+\caption{Breast Cancer: reliability diagrams and prediction histograms before/after calibration. Middle bins contain very few points (see histograms), so those segments are noisy. ECE in the legend is computed on the pooled predictions, so it differs from the per-split means in Tables 1--2.}\label{fig:bc}
+\end{figure}
+
+\subsection{Effect of the calibration-set size}\label{sec:lc}
+Figure~\ref{fig:lc} replicates the paper's learning-curve analysis on the synthetic dataset: models are trained on 4000 points and calibrated on $m\in\{32,\dots,8192\}$ independent points, evaluated on 10\,000 test points, averaged over 10 repetitions (shaded: $\pm1$ std).
+\begin{figure}[t]\centering
+\includegraphics[width=.78\textwidth]{calibration_set_size.pdf}
+\caption{Test Brier score (top) and log-loss (bottom) as a function of the calibration-set size (synthetic data).}\label{fig:lc}
+\end{figure}
+
+\section{Discussion of miscalibration}\label{sec:discussion}
+\textbf{Random Forest is miscalibrated in the way the paper predicts.} On Digits the uncalibrated RF has ECE $0.136$ and the reliability curve is the characteristic S-shape (Fig.~\ref{fig:digits}, right): for predictions in $[0.5,0.9]$ the observed positive rate is much higher than predicted, and for predictions in $[0.1,0.4]$ it is much lower, i.e.\ the forest is \emph{under-confident}. The histogram confirms the mechanism: compared with the calibrated versions, the uncalibrated predictions have fewer values at the extremes and more in the middle, because averaging trees with feature subsampling makes values near 0 or 1 hard to reach (a prediction of 0 requires \emph{all} trees to vote 0). Both calibrators move the mass back to the extremes. Platt scaling reduces the Brier score from $0.0457$ to $0.0220$ ($-52\%$), the log-loss from $0.201$ to $0.081$ ($-60\%$) and the ECE from $0.136$ to $0.020$, improving in 30/30 splits, while accuracy is essentially unchanged ($0.971$ vs.\ $0.971$): calibration changes the \emph{values} of the probabilities, not the ranking, so it is almost invisible to accuracy. The fitted sigmoid is steep ($A\approx-12.5$ for the RF vs.\ $-0.75$ for LR, seed-0 split), i.e.\ it stretches the forest's scores.
+
+\textbf{Logistic Regression is (nearly) calibrated, so calibration does not help.} Its reliability curve hugs the diagonal on both datasets (ECE $0.042$ and $0.031$), consistent with the paper: LR minimises log-loss directly, and the logistic link matches the sigmoid shape. Platt scaling changes little on Digits (Brier $0.0866\to0.0872$, log-loss $0.3033\to0.2985$) and \emph{hurts} on Breast Cancer (Brier $0.0210\to0.0246$, improvement in only 3/30 splits). The reason is that a sigmoid fitted on only 142 points with smoothed targets adds estimation noise and pulls the extreme predictions inwards (visible in Fig.~\ref{fig:bc}); calibrating an already-calibrated model can only add variance. The slope $-A\approx0.75<1$ (seed-0 split) on Digits indicates a slight over-confidence of LR on this non-linear problem, but the effect is too small to pay off.
+
+\textbf{Platt vs.\ isotonic.} Isotonic regression attains the lowest \emph{mean per-split} ECE in all four dataset/model settings (Tables~\ref{tab:breast_cancer}--\ref{tab:digits}), as expected since it directly flattens the reliability curve. This ranking is not robust, however: on the pooled predictions of Figs.~\ref{fig:digits}--\ref{fig:bc} isotonic regression has the lowest ECE in only two of the four settings (the uncalibrated LR on Breast Cancer, $0.011$ vs.\ $0.020$, and the Platt-scaled RF on Digits, $0.007$ vs.\ $0.009$, are lower), and in general the ECE differences between the variants are of the same order as the split-to-split standard deviation (roughly $0.005$--$0.015$, see the limitations). Moreover, isotonic regression is \emph{not} the best on the proper scoring rules. On Digits-RF it is slightly worse than Platt in Brier ($0.0236$ vs.\ $0.0220$) and much worse in log-loss ($0.219$ vs.\ $0.081$, even worse than the uncalibrated $0.201$). On Breast Cancer its log-loss explodes ($0.48$ for LR, $0.49$ for RF vs.\ $0.08$ and $0.15$ uncalibrated) with very high variance across splits. This is the overfitting problem described in the paper: in the seed-0 split, with 142 calibration points, PAV produces only 3 (LR) and 4 (RF) blocks and 95\% of the test predictions are exactly $0$ or $1$, so every confident mistake is penalised by about $34.5/n$ nats. Even on Digits, 25\% (LR) and 67\% (RF) of the seed-0 test predictions are exactly $0$ or $1$. Isotonic regression also produces a \emph{step} function (coarse histograms, and ties that can slightly change accuracy: $0.9697$ vs.\ $0.9711$ for RF on Digits), whereas Platt scaling is smooth. Practical mitigations, such as clipping isotonic outputs to $[\varepsilon,1-\varepsilon]$, interpolating between blocks, or cross-validated calibration, would reduce this log-loss penalty but were not part of the assignment.
+
+\textbf{Calibration-set size (Fig.~\ref{fig:lc}).} For the RF, Platt scaling improves on the uncalibrated Brier score ($0.1159$) already with 64 points and reaches $0.1103$ with $\ge4096$; isotonic regression is \emph{worse} than doing nothing with 32--64 points ($0.132$, $0.124$), about equal at 128 ($0.1160$), and converges to Platt only at several thousand points ($0.1105$ at 8192). Its log-loss at $m=32$ is $1.93$ vs.\ $0.38$ uncalibrated. For LR, the uncalibrated Brier score ($0.1860$) is not improved by Platt at any size (it only converges to it), whereas isotonic regression gives a marginal gain only for $m\ge2048$ ($0.1850$ at 2048, $0.1842$ at 8192, about $-1\%$), as it can also correct non-sigmoid distortions. For LR the two curves cross at about 512 points, in line with the paper's 200--1000 range; for the RF, isotonic regression approaches Platt scaling but does not overtake it even at 8192 points ($0.1105$ vs.\ $0.1103$), consistent with the distortion being sigmoid-shaped, where the 2-parameter model is already sufficient.
+
+\textbf{Summary of paper claims vs.\ Empirical Observations.}
+\begin{center}\small
+\begin{tabular}{p{5.0cm}p{9.6cm}}\toprule
+Claim of Niculescu-Mizil \& Caruana & Observation here\\\midrule
+Random Forest is distorted toward the middle (sigmoid curve) & Confirmed on Digits (ECE $0.136$); milder on Breast Cancer (ECE $0.050$)\\
+Logistic Regression is well calibrated; calibration may hurt & Confirmed: no gain from either method, Platt worse in 27/30 Breast Cancer splits\\
+Platt is better with little data, isotonic with $\ge1000$ points & Confirmed qualitatively: isotonic is worse than no calibration below $\approx$128 points and its log-loss is much worse with 142--449 points; it catches up with Platt only at $\gtrsim10^3$ points\\
+Calibrated RF gives among the best probabilities & Digits: calibrated RF has Brier $0.022$ vs.\ $0.087$ for LR; Breast Cancer: LR remains better\\\bottomrule
+\end{tabular}
+\end{center}
+
+\textbf{Limitations (negative aspects):} (i) The analysis is restricted to only two binary datasets, using fixed hyper-parameters; the performance characteristics observed for Random Forests may change with deeper trees or more trees. (ii) Test sets are small (143 and 450 points), so reliability diagrams are noisy in sparsely populated bins; while aggregating across splits mitigates this issue, the overlapping nature of the splits means that the reported standard deviation reflects split-to-split variability rather than a formal confidence interval. Furthermore, minor Expected Calibration Error (ECE) differences ($\sim0.005$) fall within noise. (iii) ECE is sensitive to the chosen binning strategy and exhibits inherent statistical bias in small sample regimes. (iv) A hold-out calibration split reduces the data available to the classifier; cross-validated calibration would use data more efficiently. (v) The conclusions on dataset effects (such as the easy nature of Breast Cancer problem) remain descriptive: two datasets are insufficient to establish definitive causal explanations.
+
+\section{Conclusion}
+Accuracy alone often hides miscalibration: Random Forests and Logistic Regression have reversed accuracy rankings across the two datasets (LR better on Breast Cancer, RF on Digits), but very different probability quality. Random Forests produce under-confident, sigmoid-distorted probabilities that can be cheaply and robustly corrected via Platt scaling (achieving a 52\% reduction in Brier score on Digits). On the other hand, Logistic Regression is already well-calibrated and did not need calibration in these experiments. While isotonic regression is theoretically powerful, it requires large calibration sets and safeguards against exact 0/1 predictions. The practical guideline supported by both the referenced paper and these empirical findings is clear: examine a reliability diagram, apply Platt scaling when the distortion is sigmoid-shaped or data availability is limited, and use isotonic regression only with $\gtrsim10^3$ calibration points.
+
+\section*{Reproducibility}
+All code is in the repository: \texttt{calibration/} (calibrators, metrics, data loaders), \texttt{run\_experiments.py} (regenerates every table and figure used here, ${\approx}1$ min on a laptop CPU, fixed seeds), \texttt{tests/} (comparison against \texttt{scikit-learn}), and \texttt{report/main.tex}. \texttt{scikit-learn} is used only for the classifiers, data loading and splitting, and in the tests as a reference; Platt scaling, isotonic regression (PAV), all metrics and reliability statistics are implemented from scratch with NumPy, and Matplotlib is used only for plotting.
+Results were obtained with Python 3.14.5, NumPy 2.5.3, scikit-learn 1.9.1 and Matplotlib 3.11.2; Random Forest results may differ slightly with other library versions. The code logs the Python, NumPy and scikit-learn versions at the start of each run.
+
+\begin{thebibliography}{9}\small
+\bibitem{nmc05} A.~Niculescu-Mizil and R.~Caruana. Predicting good probabilities with supervised learning. \emph{ICML}, 2005.
+\bibitem{platt99} J.~Platt. Probabilistic outputs for support vector machines and comparison to regularized likelihood methods. In \emph{Advances in Large Margin Classifiers}, 1999.
+\bibitem{ze02} B.~Zadrozny and C.~Elkan. Transforming classifier scores into accurate multiclass probability estimates. \emph{KDD}, 2002.
+\bibitem{ayer55} M.~Ayer, H.~Brunk, G.~Ewing, W.~Reid, E.~Silverman. An empirical distribution function for sampling with incomplete information. \emph{Ann.\ Math.\ Statist.}, 1955.
+\bibitem{dgf82} M.~DeGroot and S.~Fienberg. The comparison and evaluation of forecasters. \emph{The Statistician}, 1982.
+\bibitem{brier50} G.~Brier. Verification of forecasts expressed in terms of probability. \emph{Monthly Weather Review}, 1950.
+\bibitem{murphy73} A.~Murphy. A new vector partition of the probability score. \emph{J.\ Applied Meteorology}, 1973.
+\bibitem{sklearn} F.~Pedregosa et al. Scikit-learn: machine learning in Python. \emph{JMLR}, 2011.
+\bibitem{uci} D.~Dua and C.~Graff. UCI Machine Learning Repository, 2019. \url{http://archive.ics.uci.edu/ml}
+\end{thebibliography}
+\end{document}
