@@ -1,0 +1,218 @@
+{
+ "Logistic Regression|Uncalibrated|32": {
+  "Brier": 0.1859846860995364,
+  "Log-loss": 0.5570185169429545
+ },
+ "Logistic Regression|Uncalibrated|64": {
+  "Brier": 0.1859846860995364,
+  "Log-loss": 0.5570185169429545
+ },
+ "Logistic Regression|Uncalibrated|128": {
+  "Brier": 0.1859846860995364,
+  "Log-loss": 0.5570185169429545
+ },
+ "Logistic Regression|Uncalibrated|256": {
+  "Brier": 0.1859846860995364,
+  "Log-loss": 0.5570185169429545
+ },
+ "Logistic Regression|Uncalibrated|512": {
+  "Brier": 0.1859846860995364,
+  "Log-loss": 0.5570185169429545
+ },
+ "Logistic Regression|Uncalibrated|1024": {
+  "Brier": 0.1859846860995364,
+  "Log-loss": 0.5570185169429545
+ },
+ "Logistic Regression|Uncalibrated|2048": {
+  "Brier": 0.1859846860995364,
+  "Log-loss": 0.5570185169429545
+ },
+ "Logistic Regression|Uncalibrated|4096": {
+  "Brier": 0.1859846860995364,
+  "Log-loss": 0.5570185169429545
+ },
+ "Logistic Regression|Uncalibrated|8192": {
+  "Brier": 0.1859846860995364,
+  "Log-loss": 0.5570185169429545
+ },
+ "Logistic Regression|Platt|32": {
+  "Brier": 0.1980039065410864,
+  "Log-loss": 0.5959439423741685
+ },
+ "Logistic Regression|Platt|64": {
+  "Brier": 0.19112552356893714,
+  "Log-loss": 0.5685004007102428
+ },
+ "Logistic Regression|Platt|128": {
+  "Brier": 0.18933130253491642,
+  "Log-loss": 0.564199931203649
+ },
+ "Logistic Regression|Platt|256": {
+  "Brier": 0.18730810386045654,
+  "Log-loss": 0.5600774437763004
+ },
+ "Logistic Regression|Platt|512": {
+  "Brier": 0.1873113796494547,
+  "Log-loss": 0.5592710236507529
+ },
+ "Logistic Regression|Platt|1024": {
+  "Brier": 0.18672759120841634,
+  "Log-loss": 0.558100648416312
+ },
+ "Logistic Regression|Platt|2048": {
+  "Brier": 0.18635667339266307,
+  "Log-loss": 0.5573516412616638
+ },
+ "Logistic Regression|Platt|4096": {
+  "Brier": 0.18618398960734478,
+  "Log-loss": 0.5569177179873378
+ },
+ "Logistic Regression|Platt|8192": {
+  "Brier": 0.18616499039584944,
+  "Log-loss": 0.5568227724249357
+ },
+ "Logistic Regression|Isotonic|32": {
+  "Brier": 0.21481070677965958,
+  "Log-loss": 3.055033887010923
+ },
+ "Logistic Regression|Isotonic|64": {
+  "Brier": 0.19935320501447745,
+  "Log-loss": 1.608718720269985
+ },
+ "Logistic Regression|Isotonic|128": {
+  "Brier": 0.19077087964650555,
+  "Log-loss": 0.8763501326788579
+ },
+ "Logistic Regression|Isotonic|256": {
+  "Brier": 0.1884056269962275,
+  "Log-loss": 0.78032738310128
+ },
+ "Logistic Regression|Isotonic|512": {
+  "Brier": 0.18686692047617343,
+  "Log-loss": 0.6259953489406
+ },
+ "Logistic Regression|Isotonic|1024": {
+  "Brier": 0.18604744147467436,
+  "Log-loss": 0.596347893967392
+ },
+ "Logistic Regression|Isotonic|2048": {
+  "Brier": 0.1850314945803068,
+  "Log-loss": 0.5805720468475346
+ },
+ "Logistic Regression|Isotonic|4096": {
+  "Brier": 0.1845016365471835,
+  "Log-loss": 0.5701522494452851
+ },
+ "Logistic Regression|Isotonic|8192": {
+  "Brier": 0.18416407579465385,
+  "Log-loss": 0.5586044974829933
+ },
+ "Random Forest|Uncalibrated|32": {
+  "Brier": 0.11588682349999999,
+  "Log-loss": 0.3825151775448088
+ },
+ "Random Forest|Uncalibrated|64": {
+  "Brier": 0.11588682349999999,
+  "Log-loss": 0.3825151775448088
+ },
+ "Random Forest|Uncalibrated|128": {
+  "Brier": 0.11588682349999999,
+  "Log-loss": 0.3825151775448088
+ },
+ "Random Forest|Uncalibrated|256": {
+  "Brier": 0.11588682349999999,
+  "Log-loss": 0.3825151775448088
+ },
+ "Random Forest|Uncalibrated|512": {
+  "Brier": 0.11588682349999999,
+  "Log-loss": 0.3825151775448088
+ },
+ "Random Forest|Uncalibrated|1024": {
+  "Brier": 0.11588682349999999,
+  "Log-loss": 0.3825151775448088
+ },
+ "Random Forest|Uncalibrated|2048": {
+  "Brier": 0.11588682349999999,
+  "Log-loss": 0.3825151775448088
+ },
+ "Random Forest|Uncalibrated|4096": {
+  "Brier": 0.11588682349999999,
+  "Log-loss": 0.3825151775448088
+ },
+ "Random Forest|Uncalibrated|8192": {
+  "Brier": 0.11588682349999999,
+  "Log-loss": 0.3825151775448088
+ },
+ "Random Forest|Platt|32": {
+  "Brier": 0.1160276858586353,
+  "Log-loss": 0.3841773631492292
+ },
+ "Random Forest|Platt|64": {
+  "Brier": 0.1135975554362583,
+  "Log-loss": 0.37366586917012534
+ },
+ "Random Forest|Platt|128": {
+  "Brier": 0.11131657100630099,
+  "Log-loss": 0.3655670145121065
+ },
+ "Random Forest|Platt|256": {
+  "Brier": 0.1110844309684867,
+  "Log-loss": 0.36460368821193306
+ },
+ "Random Forest|Platt|512": {
+  "Brier": 0.11088762388992454,
+  "Log-loss": 0.3638526601258615
+ },
+ "Random Forest|Platt|1024": {
+  "Brier": 0.11059629725246536,
+  "Log-loss": 0.36274230804600116
+ },
+ "Random Forest|Platt|2048": {
+  "Brier": 0.11042311415053659,
+  "Log-loss": 0.36230231446138594
+ },
+ "Random Forest|Platt|4096": {
+  "Brier": 0.11034957877668641,
+  "Log-loss": 0.3619886700550961
+ },
+ "Random Forest|Platt|8192": {
+  "Brier": 0.1103192839924653,
+  "Log-loss": 0.36190848301304346
+ },
+ "Random Forest|Isotonic|32": {
+  "Brier": 0.13237489103038244,
+  "Log-loss": 1.927401964158512
+ },
+ "Random Forest|Isotonic|64": {
+  "Brier": 0.1240476415600846,
+  "Log-loss": 1.4204708559563233
+ },
+ "Random Forest|Isotonic|128": {
+  "Brier": 0.11598820927237292,
+  "Log-loss": 0.7265503666985761
+ },
+ "Random Forest|Isotonic|256": {
+  "Brier": 0.11370342132035745,
+  "Log-loss": 0.5591582305920952
+ },
+ "Random Forest|Isotonic|512": {
+  "Brier": 0.11234033066958618,
+  "Log-loss": 0.4504034052575531
+ },
+ "Random Forest|Isotonic|1024": {
+  "Brier": 0.11150942935979218,
+  "Log-loss": 0.4282293419129951
+ },
+ "Random Forest|Isotonic|2048": {
+  "Brier": 0.11114539169276297,
+  "Log-loss": 0.3983926445789509
+ },
+ "Random Forest|Isotonic|4096": {
+  "Brier": 0.11071173064544286,
+  "Log-loss": 0.3776349615075076
+ },
+ "Random Forest|Isotonic|8192": {
+  "Brier": 0.1104631071889655,
+  "Log-loss": 0.3694584346370243
+ }
+}

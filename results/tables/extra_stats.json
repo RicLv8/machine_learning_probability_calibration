@@ -1,0 +1,38 @@
+{
+ "breast_cancer|Logistic Regression": {
+  "n_train": 284,
+  "n_cal": 142,
+  "n_test": 143,
+  "platt_A": -0.6865559713030441,
+  "platt_B": 0.9555617765621384,
+  "iso_blocks": 3,
+  "iso_frac_exact01": 0.951048951048951
+ },
+ "breast_cancer|Random Forest": {
+  "n_train": 284,
+  "n_cal": 142,
+  "n_test": 143,
+  "platt_A": -9.550811571427776,
+  "platt_B": 5.9928398425504446,
+  "iso_blocks": 4,
+  "iso_frac_exact01": 0.951048951048951
+ },
+ "digits|Logistic Regression": {
+  "n_train": 898,
+  "n_cal": 449,
+  "n_test": 450,
+  "platt_A": -0.7497113128305,
+  "platt_B": 0.19715514991121066,
+  "iso_blocks": 10,
+  "iso_frac_exact01": 0.25333333333333335
+ },
+ "digits|Random Forest": {
+  "n_train": 898,
+  "n_cal": 449,
+  "n_test": 450,
+  "platt_A": -12.493694750194253,
+  "platt_B": 6.257472170950629,
+  "iso_blocks": 8,
+  "iso_frac_exact01": 0.6733333333333333
+ }
+}
